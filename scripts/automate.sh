@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -e
 
@@ -7,6 +7,13 @@ SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 ROOT=private-testnet
 export CARDANO_NODE_SOCKET_PATH=$ROOT/node-spo1/node.sock
 echo "path: $CARDANO_NODE_SOCKET_PATH"
+
+# Script directory variable
+SCRIPT_DIRECTORY=$(dirname $0)
+
+ARTIFACTS_DIR="private-testnet"
+
+NETWORK_MAGIC="42"
 
 wait_until_socket_detected()
 {
@@ -73,11 +80,20 @@ query_tip()
 "${SCRIPT_PATH}"/kill-processes-and-remove-private-testnet.sh
 
 # run script to create config
-"${SCRIPT_PATH}"/mkfiles.sh
+. "${SCRIPT_PATH}"/mkfiles.sh
+. "${SCRIPT_PATH}"/mkfiles-topology.sh
+. "${SCRIPT_PATH}"/mkfiles-cardano.sh
+. "${SCRIPT_PATH}"/mkfiles-start.sh
 
-restart_nodes_in_bg
-echo
-wait_until_socket_detected
+
+echo "UNICORN6 NETWORK IS READY"
+echo $(ls)
+./start-cardano.sh
+
+
+# restart_nodes_in_bg
+# echo
+# wait_until_socket_detected
 
 #run_update_script "1"
 
@@ -86,10 +102,12 @@ cli_version=$(cardano-cli version)
 echo "CLI Version = $cli_version"
 
 echo
-current_era=$( cardano-cli query tip --testnet-magic 42 | jq '.era' )
-protocol_version=$( cardano-cli query protocol-parameters --testnet-magic 42 | jq '.protocolVersion.major' )
+
+current_era=$( CARDANO_NODE_SOCKET_PATH=/home/cardano/pi-pool/scripts/private-testnet/node-pool1/ipc/node.sock cardano-cli query tip --testnet-magic 42 | jq '.era' )
+protocol_version=$( CARDANO_NODE_SOCKET_PATH=/home/cardano/pi-pool/scripts/private-testnet/node-pool1/ipc/node.sock cardano-cli query protocol-parameters --testnet-magic 42 | jq '.protocolVersion.major' )
 echo "Nodes are running in era: $current_era, major protocol version: $protocol_version"
 echo
 echo "Congrats! Your network is ready for use!"
 
+tail -f /dev/null
 wait
